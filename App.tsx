@@ -22,7 +22,6 @@ const App: React.FC = () => {
   const [aiText, setAiText] = useState('');
   const [recommendations, setRecommendations] = useState('');
   const [history, setHistory] = useState<HistoryItem[]>([]);
-  const [showLibrary, setShowLibrary] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem('master_history');
@@ -81,18 +80,6 @@ const App: React.FC = () => {
   };
 
   const isAuspicious = (analysis?.summary.score || 0) >= 60;
-
-  const getLibraryData = () => {
-    const groups: Record<string, Record<number, string[]>> = {};
-    Object.entries(NUMBER_MAP).forEach(([digits, data]) => {
-      if (!groups[data.type]) groups[data.type] = {};
-      if (!groups[data.type][data.level]) groups[data.type][data.level] = [];
-      groups[data.type][data.level].push(digits);
-    });
-    return groups;
-  };
-
-  const libraryData = getLibraryData();
 
   return (
     <div className="min-h-screen bg-[#fcf9f2] text-slate-900 pb-20 font-serif">
@@ -222,90 +209,10 @@ const App: React.FC = () => {
                    <label className="text-[10px] uppercase font-bold text-gray-400 mb-1 block">所属行业</label>
                    <input type="text" placeholder="如: 互联网、贸易、公务员" className="w-full p-3 rounded-xl border border-gray-200 bg-white font-bold outline-none focus:border-[#8B0000]" value={jobNature} onChange={(e)=>setJobNature(e.target.value)} />
                  </div>
-                 <button 
-                  onClick={() => setShowLibrary(!showLibrary)}
-                  className="w-full py-2.5 border-2 border-[#8B0000] text-[#8B0000] rounded-xl text-xs font-black hover:bg-[#8B0000] hover:text-white transition-all shadow-sm"
-                 >
-                   {showLibrary ? '隐藏磁场数据' : '查看八星能量全图'}
-                 </button>
                </div>
             </div>
           </div>
         </div>
-
-        {/* 磁场图库 */}
-        {showLibrary && (
-          <div className="mb-8 animate-in fade-in zoom-in duration-300">
-            <div className="bg-white rounded-[2.5rem] p-10 border-2 border-[#8B0000] shadow-2xl">
-              <h3 className="text-3xl font-black text-[#8B0000] mb-8 border-b-2 border-gray-100 pb-4 flex justify-between items-center">
-                <span>八星磁场 · 能量全书</span>
-                <span className="text-xs font-normal text-gray-400">（1级最强能量）</span>
-              </h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                {/* 吉星 */}
-                <div>
-                  <h4 className="text-xl font-black text-indigo-800 mb-6 flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full bg-indigo-800"></span>
-                    四吉星 (Auspicious)
-                  </h4>
-                  <div className="space-y-6">
-                    {[StarType.TIANYI, StarType.SHENGQI, StarType.YANNIAN, StarType.FUWEI].map(starType => (
-                      <div key={starType} className="border-l-4 border-indigo-200 pl-4 py-1">
-                        <div className="font-black text-indigo-900 text-lg mb-2 flex items-center">
-                          {starType}
-                          <span className="text-[10px] font-bold text-white bg-indigo-400 px-2 py-0.5 rounded-full ml-2 uppercase">
-                            {STAR_DATA[starType][1].trait}
-                          </span>
-                        </div>
-                        <div className="grid grid-cols-4 gap-2">
-                          {[1, 2, 3, 4].map(level => (
-                            <div key={level} className="text-center">
-                              <div className="text-[9px] text-gray-400 font-bold mb-1">{level}级</div>
-                              <div className="bg-indigo-50 text-indigo-800 text-[10px] font-mono font-black py-1.5 rounded-lg border border-indigo-100">
-                                {libraryData[starType]?.[level]?.join(', ') || '-'}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 凶星 */}
-                <div>
-                  <h4 className="text-xl font-black text-red-800 mb-6 flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full bg-red-800"></span>
-                    四凶星 (Inauspicious)
-                  </h4>
-                  <div className="space-y-6">
-                    {[StarType.JUEMING, StarType.WUGUI, StarType.LIUSHA, StarType.HUOHAI].map(starType => (
-                      <div key={starType} className="border-l-4 border-red-200 pl-4 py-1">
-                        <div className="font-black text-red-900 text-lg mb-2 flex items-center">
-                          {starType}
-                          <span className="text-[10px] font-bold text-white bg-red-400 px-2 py-0.5 rounded-full ml-2 uppercase">
-                            {STAR_DATA[starType][1].trait}
-                          </span>
-                        </div>
-                        <div className="grid grid-cols-4 gap-2">
-                          {[1, 2, 3, 4].map(level => (
-                            <div key={level} className="text-center">
-                              <div className="text-[9px] text-gray-400 font-bold mb-1">{level}级</div>
-                              <div className="bg-red-50 text-red-800 text-[10px] font-mono font-black py-1.5 rounded-lg border border-red-100">
-                                {libraryData[starType]?.[level]?.join(', ') || '-'}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {analysis && (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
