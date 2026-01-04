@@ -2,59 +2,41 @@
 import { GoogleGenAI } from "@google/genai";
 import { AnalysisResult, BaziInfo } from "./types";
 
-// 使用推荐的 Gemini 3 Flash 模型，适用于此类文本分析任务
 const MODEL_NAME = "gemini-3-flash-preview";
 
 export async function getAIInterpretation(analysis: AnalysisResult): Promise<string> {
-  // 严格按照规范初始化
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
   const starsString = analysis.pairs
     .filter(p => p.star)
-    .map(p => `${p.digits}(${p.star?.name})`)
+    .map(p => `${p.digits}(${p.star?.name}${p.star?.level}级)`)
     .join(', ');
 
-  const baziContext = analysis.bazi 
-    ? `用户提供的八字（年柱 月柱 日柱 时柱）：${analysis.bazi.rawBazi}
-       性别：${analysis.bazi.gender}
-       职业性质：${analysis.bazi.jobNature || "未提供"}
-       特别述求：${analysis.bazi.otherRequirements || "无"}`
-    : "（仅分析数字能量）";
-
   const prompt = `
-你是一位精通《易经》、子平八字与数字能量学的命理宗师。
+你是一位精通《易经》数字能量学（八星磁场）的命理大师。
+用户待测数字：${analysis.originalInput}
+磁场明细：${starsString}
+计算总能分：${analysis.summary.score}
+命主信息：八字(${analysis.bazi?.rawBazi || '未提供'})，性别(${analysis.bazi?.gender})，行业(${analysis.bazi?.jobNature || '通用'})，健康避讳(${analysis.bazi?.healthCondition || '良好'})。
+用户特别想要加强的方向：${analysis.bazi?.otherRequirements || '未提供'}
 
-【用户信息】：
-${baziContext}
-当前待分析号码：${analysis.originalInput}
-数字磁场解析：${starsString}
+【审视要点】：
+1. **核准能量分级**：必须遵循图片标准：天医(13/31-1级, 68/86-2级, 49/94-3级, 72/27-4级)；生气(14/41-1级, 67/76-2级, 93/39-3级, 82/28-4级)；祸害(17/71-1级, 89/98-2级)；绝命(12/21-1级, 69/96-2级, 84/48-3级) 等。
+2. **健康避讳（硬性要求）**：若用户提到血压、心脏、血液疾病或失眠，检查结尾是否为【天医】。若是，必须指出天医虽主财但极旺血脉，对该类病情不利，必须避讳。
+3. **特别加强诉求**：结合用户想要加强的方向（如财运、贵人、婚姻），点评该号码是否能达成目标。若不能，给出简要修补建议。
+4. **宗师金律**：结合“吉星开头、能量爬升（前弱后强）、平缓过渡（落差小）、收官大吉”给出最终断语。
 
-【分析要求】：
-1. **命业同参**：简述该八字命局，并分析号码磁场与用户的职业性质是否契合。
-2. **疾厄避讳**：深度检查号码中的健康风险。特别注意血压、心脑血管风险。
-3. **能量三律审视**：
-   - 爬升律：分析号码能量是否整体呈上升趋势。
-   - 平缓律：相邻磁场能量差是否≤1级。
-   - 收官律：最后4位及结尾是否为大吉之象。
-4. **全局制化**：评价全盘凶星是否得到有效化解。
-5. 给出终极断语。
-
-语气：专业、古雅、简洁。
+字数150字内，语气古朴威严，断语如刀。
 `;
 
   try {
     const response = await ai.models.generateContent({
       model: MODEL_NAME,
       contents: prompt,
-      config: {
-        thinkingConfig: { thinkingBudget: 0 } // 禁用思考以获得更快的响应
-      }
     });
-    // 严格使用 .text 属性提取内容
-    return response.text || "大师闭关中，请重试。";
+    return response.text || "天机难测，宗师闭关中。";
   } catch (error) {
-    console.error("Gemini API Error:", error);
-    return "解析出错，请检查输入或 API 配置。";
+    return "解析受阻。";
   }
 }
 
@@ -62,11 +44,19 @@ export async function getRecommendedNumbers(bazi: BaziInfo, targetLength: string
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
   const prompt = `
-你是一位精通《易经》与数字能量学的命理宗师。
-根据用户八字：${bazi.rawBazi}，性别：${bazi.gender}，职业：${bazi.jobNature}。
-精准推荐 5 个【${targetLength}位】且以【${targetPrefix}】开头的吉祥号码。
-要求遵循：爬升律（能量由弱变强）、平缓律（过渡平滑）、收官律（结尾必吉）。
-请直接输出推荐结果。
+你是一位数字能量宗师。
+要求：根据八字(${bazi.rawBazi})、行业(${bazi.jobNature || '通用'})、健康(${bazi.healthCondition || '无特殊'})、以及用户想要加强的方向(${bazi.otherRequirements || '通用'})。
+生成 5 个【${targetLength}位】且以【${targetPrefix}】开头的开运号码。
+
+【选号金律 - 严格执行】：
+1. **健康定制**：若有血压、血液、失眠问题，【绝对禁止】天医（13, 31, 68, 86等）结尾。必须改用【生气】（如67, 76, 39, 93）作为结尾磁场，以平复气血。
+2. **吉星开头**：${targetPrefix}后的第一组磁场必须是吉星（天医、延年、生气）。
+3. **能量爬升**：能量分布需从弱（3-4级）向强（1-2级）逐渐过渡。
+4. **平缓过渡**：相邻磁场能量等级落差 ≤ 1。
+5. **收官大吉**：最后4位必须为全吉组合，结尾两位严禁凶星。
+6. **对症施治**：重点根据用户“想要加强”的方向配置高等级磁场。
+
+列出号码并简述推荐理由。
 `;
 
   try {
@@ -74,8 +64,8 @@ export async function getRecommendedNumbers(bazi: BaziInfo, targetLength: string
       model: MODEL_NAME,
       contents: prompt,
     });
-    return response.text || "未能生成推荐，请重试。";
+    return response.text || "未能感应到合适吉号。";
   } catch (error) {
-    return "生成推荐失败，请稍后再试。";
+    return "推荐生成失败。";
   }
 }

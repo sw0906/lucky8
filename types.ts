@@ -40,6 +40,7 @@ export interface BaziInfo {
   rawBazi: string; 
   gender: string;
   jobNature?: string; 
+  healthCondition?: string; // 新增：健康状况
   otherRequirements?: string; 
 }
 
